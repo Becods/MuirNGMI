@@ -1,0 +1,73 @@
+name: BUG报告
+description: 报告一个bug以帮助我们改进MuirNGMI
+title: "[BUG报告] "
+
+body:
+- type: markdown
+  attributes:
+    value: |
+      感谢您花时间填写此错误报告!
+- type: input
+  id: module-name
+  attributes:
+    label: 模块名称
+  validations:
+    required: true
+- type: input
+  id: module-version
+  attributes:
+    label: 模块版本
+  validations:
+    required: true
+- type: textarea
+  id: bug-description
+  attributes:
+    label: BUG描述
+    description: 告诉我们您遇到了什么问题
+    placeholder: 包括有关您尝试过的内容、您期望发生的事情以及实际发生的事情的信息。细节越多越好！
+  validations:
+    required: true
+- type: input
+  id: system-architecture
+  attributes:
+    label: 系统架构
+    description: 包括您使用的系统结构，例如 `linux/amd64`, `windows/amd64`
+  validations:
+    required: true
+- type: textarea
+  id: config
+  attributes:
+    label: 配置文件
+    description: 包括您使用并遇到此问题的配置
+    placeholder: 注意在自行模糊化隐私内容
+  validations:
+    required: true
+- type: textarea
+  id: log
+  attributes:
+    label: 日志
+    description: 希望您在此处提供相关的错误日志
+    placeholder: 注意在自行模糊化隐私内容
+- type: textarea
+  id: steps-to-reproduce
+  attributes:
+    label: 操作步骤
+    description: 如何复现它？找到bug对我们来说很重要
+    value: |
+      1. 
+      2. 
+      3. 
+      ...
+- type: checkboxes
+  id: area
+  attributes:
+    label: 受影响区域
+    options:
+    - label: "文档"
+    - label: "安装"
+    - label: "性能和可扩展性"
+    - label: "安全性"
+    - label: "用户体验"
+    - label: "测试和发布"
+    - label: "二次开发"
+    - label: "其他"

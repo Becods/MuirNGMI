@@ -1,0 +1,34 @@
+comment: >-
+  This issue has been automatically closed because it doesn't follow the issue template.
+  
+  
+  Please open a new issue and make sure to **follow the provided template**, 
+  fill out the sections **without modifying** or **deleting** the existing text.
+  
+  
+  Templates are necessary to manage the project efficiently,
+  as basic questions don't need to be asked again each time.
+issueConfigs:
+
+# Bug
+- content:
+  - "Module name"
+  - "Module version"
+  - "Bug Description"
+  - "System Architecture"
+  - "Configurations"
+  - "模块名称"
+  - "模块版本"
+  - "BUG描述"
+  - "系统架构"
+  - "配置文件"
+
+# Feature / Documentation
+- content:
+  - "Describe the feature request"
+  - "功能描述"
+
+caseInsensitive: true
+label: "Closed by bot"
+exception:
+  - "BecodReyes"
