@@ -31,10 +31,9 @@ _✨ Muir下一代微服务架构 ✨_
 - Nginx 代理对 Node.js 的请求
 
 ## Currently supported microservice module
-Please wait...
-
-## Upcoming supported microservice modules
 ### Nginx
+- HTTP/3支持<sup>仅quic版本</sup>
+- HTTP/2支持
 - 硬编码错误页面
 - server头修改
 - 0-RTT
@@ -43,14 +42,14 @@ Please wait...
 - NJS
 - Cookie-Flag
 - TLSv1.3
-- BoringSSL
-- Cloudflare fork of zlib
-- **10mb超小体积**
+- OpenSSL 3.0<sup>默认</sup> / Boringssl<sup>quic版本强制启用</sup>
+- Zlib of cloudflare fork
+- waf模块<sup>可选</sup>
 
+## Upcoming supported microservice modules
 ### PHP
 - 源代码编译超多稳定版本(5.6 7.0 7.1 7.2 7.3 7.4 8.0)
 - 常用模块安装+可选模块
-- **10mb超小体积**
 
 ### NodeJS
 - 源代码编译多版本支持(12 14 16 17)
