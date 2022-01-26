@@ -16,54 +16,48 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
       - name: Set current date as env variable
         run: echo "BuildTime=$(date +'%Y%m%d')" >> $GITHUB_ENV
 
       - name: Make nginx-builder for tag ${{ matrix.tags }}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./nginx/${{ matrix.tags }}/Dockerfile.builder
-          push: false
-          tags: |
-            nginx:builder
+        run: |
+          cd ./nginx/${{ matrix.tags }}
+          docker build . -t nginx:builder -f Dockerfile.builder
 
       - name: Make nginx-modules for tag ${{ matrix.tags }}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./nginx/${{ matrix.tags }}/Dockerfile.modules
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:modules-${{ env.BuildTime }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:modules
+        run: |
+          cd ./nginx/${{ matrix.tags }}
+          docker build . -t nginx:modules -f Dockerfile.modules
 
       - name: Make nginx-full for tag ${{ matrix.tags }}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./nginx/${{ matrix.tags }}/Dockerfile.full
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:full-${{ env.BuildTime }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:full
+        run: |
+          cd ./nginx/${{ matrix.tags }}
+          docker build . -t nginx:full -f Dockerfile.full
 
       - name: Make nginx for tag ${{ matrix.tags }}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./nginx/${{ matrix.tags }}/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:${{ env.BuildTime }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:latest
+        run: |
+          cd ./nginx/${{ matrix.tags }}
+          docker build . -t nginx:latest -f Dockerfile
 
-      - name: Make nginx-modules for tag ${{ matrix.tags }}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./nginx/${{ matrix.tags }}/Dockerfile.fixed
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:fixed-${{ env.BuildTime }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/nginx:fixed
+      - name: Make nginx-fixed for tag ${{ matrix.tags }}
+        run: |
+          cd ./nginx/${{ matrix.tags }}
+          docker build . -t nginx:fixed -f Dockerfile.fixed
+
+      - name: Push to Docker Hub
+        run: |
+          docker tag nginx:modules ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:modules-${{ env.BuildTime }}
+          docker tag nginx:modules ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:modules
+          docker tag nginx:full ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:full-${{ env.BuildTime }}
+          docker tag nginx:full ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:full
+          docker tag nginx:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:${{ env.BuildTime }}
+          docker tag nginx:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:latest
+          docker tag nginx:fixed ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:fixed-${{ env.BuildTime }}
+          docker tag nginx:fixed ${{ secrets.DOCKER_HUB_USERNAME }}/nginx:fixed
+          docker image push --all-tags ${{ secrets.DOCKER_HUB_USERNAME }}/nginx
