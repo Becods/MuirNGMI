@@ -1,0 +1,35 @@
+FROM nginx:modules AS Modules
+FROM nginx:builder AS Building
+
+COPY --from=Modules / /
+
+ENV INOTIFY_TOOLS_VERSON 3.21.9.6
+
+RUN git clone --depth=1 -b ${INOTIFY_TOOLS_VERSON} https://github.com/inotify-tools/inotify-tools /usr/local/src/inotify-tools \
+ && cd /usr/local/src/inotify-tools \
+ && ./autogen.sh \
+ && ./configure --prefix=/inotify-tools \
+ && make -j$(nproc) \
+ && make install
+
+RUN mkdir -p /rootfs/usr/bin /rootfs/usr/lib/nginx/modules /rootfs/tmp/nginx /rootfs/lib /rootfs/entrypoint.d \
+ && cp /usr/local/src/nginx-$NGINX_VERSION/objs/nginx /rootfs/usr/bin/ \
+ && cp /usr/local/lib/libjemalloc.so.2 /rootfs/lib/ \
+ && cp /inotify-tools/bin/* /rootfs/usr/bin/ -rf \
+ && cp /inotify-tools/lib/* /rootfs/lib/ -rf \
+ && mv /modules/lib/* /rootfs/ -f \
+ && cp /modules/ /rootfs/usr/lib/nginx/ -rf \
+ && mkdir -p /rootfs/etc \
+ && echo "nogroup:*:10000:nobody" > /rootfs/etc/group \
+ && echo "nobody:*:10000:10000:::" > /rootfs/etc/passwd \
+ && mkdir -p /rootfs/etc/nginx \
+ && mkdir -p /rootfs/etc/ssl/certs \
+ && cp /etc/ssl/certs/ca-certificates.crt /rootfs/etc/ssl/certs/
+
+FROM debian:bullseye-slim
+COPY --from=Building /rootfs /
+COPY rootfs /
+RUN useradd -l -u 25872 -s /sbin/nologin -p www www
+ENTRYPOINT ["/entrypoint.sh"]
+STOPSIGNAL SIGQUIT
+CMD ["nginx", "-g", "daemon off;"]

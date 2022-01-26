@@ -12,12 +12,14 @@ _✨ Muir下一代微服务架构 ✨_
 - 微服务架构
 - 源代码编译多版本
 - 非特权用户身份运行
-- 攻击面减少~~shell，UNIX工具，包管理器~~
-- unix socks通信
+- unix socks通信<sup>可选</sup>
 - 持久化储存
 - 高度可配置
 - 开箱即用
 - 一键部署
+- 脚本配置
+
+更多特性请点击对应模块
 
 ### Docker
 使用 Docker 能够在让独立的服务或应用程序在不同的环境中得到相同的运行结果
@@ -31,20 +33,7 @@ _✨ Muir下一代微服务架构 ✨_
 - Nginx 代理对 Node.js 的请求
 
 ## Currently supported microservice module
-### Nginx
-- HTTP/3支持<sup>仅quic版本</sup>
-- HTTP/2支持
-- 硬编码错误页面
-- server头修改
-- 0-RTT
-- Lua模块支持
-- brotli压缩
-- NJS
-- Cookie-Flag
-- TLSv1.3
-- OpenSSL 3.0<sup>默认</sup> / Boringssl<sup>quic版本强制启用</sup>
-- Zlib of cloudflare fork
-- waf模块<sup>可选</sup>
+- Nginx
 
 ## Upcoming supported microservice modules
 ### PHP
