@@ -1,5 +1,7 @@
 FROM nginx:builder AS Building
 
+LABEL maintainer="BecodReyes <i@muir.fun>"
+
 RUN mkdir -p /rootfs/usr/bin /rootfs/tmp/nginx /rootfs/lib /rootfs/entrypoint.d \
  && cp /usr/local/src/nginx-$NGINX_VERSION/objs/nginx /rootfs/usr/bin/ \
  && cp /usr/local/lib/libjemalloc.so.2 /rootfs/lib/ \

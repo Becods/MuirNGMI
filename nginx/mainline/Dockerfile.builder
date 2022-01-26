@@ -1,6 +1,4 @@
-FROM debian:bullseye-slim
-
-LABEL maintainer="BecodReyes <i@muir.fun>"
+FROM docker.io/library/debian:bullseye-slim
 
 ENV DEBIAN_FRONTEND noninteractive
 

@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim AS Building
+FROM docker.io/library/debian:bullseye-slim AS Building
 
 LABEL maintainer="BecodReyes <i@muir.fun>"
 
