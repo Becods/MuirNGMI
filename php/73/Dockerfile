@@ -2,7 +2,7 @@ FROM php:7.3-fpm
 
 RUN apt-get update \
  && export CFLAGS="$PHP_CFLAGS" CPPFLAGS="$PHP_CPPFLAGS" LDFLAGS="$PHP_LDFLAGS" \
- && apt-get install -y --no-install-recommends install -y libfreetype6-dev libjpeg62-turbo-dev libpng-dev libmagickwand-dev libmemcached-dev zlib1g-dev libgmp-dev \
+ && apt-get install -y --no-install-recommends libfreetype6-dev libjpeg62-turbo-dev libpng-dev libmagickwand-dev libmemcached-dev zlib1g-dev libgmp-dev \
  && rm -r /var/lib/apt/lists/* \
  && rm -r /var/cache/*
 
