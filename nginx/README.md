@@ -2,9 +2,9 @@
 
 ## Tags
 ```
-nginx - mainline - full - 220115
-  ↑        ↑         ↑       ↑
-Nginx    branch   feature buildtime
+nginx - mainline - full
+  ↑        ↑         ↑
+Nginx    branch   feature
 ```
 
 ## Currently supported microservice module
@@ -15,7 +15,7 @@ Nginx    branch   feature buildtime
 - OpenSSL 3.0 <sup>mainline</sup>
 - Lua模块支持 <sup>all</sup>
 - 超多模块可选 <sup>mainlline quic</sup>
-- 自动热重载 <sup>inotify</sup>
+- 自动热重载 <sup>all</sup>
 
 ## Upcoming supported microservice modules
 - HTTP/3支持 <sup>quic</sup>

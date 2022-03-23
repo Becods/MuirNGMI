@@ -1,0 +1,102 @@
+# Just example
+
+version: '3'
+services:
+  nginx:
+    image: "becod/nginx"
+    container_name: "nginx"
+    hostname: "nginx"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - /data/nginx:/etc/nginx
+      - /data/wwwroot:/var/www/html
+      - /data/wwwlogs:/var/www/logs
+      - socket:/var/run/socks
+
+  db:
+    image: "mysql:5.7"
+    container_name: "mysql"
+    hostname: "mysql"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - /data/mysql/data:/var/lib/mysql
+      - /data/mysql/my.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+      - socket:/var/run/socks
+
+  memcached:
+    image: "memcached:latest"
+    container_name: "memcached"
+    hostname: "memcached"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - socket:/var/run/socks
+
+  redis:
+    image: "redis:latest"
+    container_name: "redis"
+    hostname: "redis"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /data/redis:/data
+      - socket:/var/run/socks
+
+  php5:
+    image: "becod/php:5.6"
+    container_name: "php56"
+    hostname: "php56"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /data/wwwroot:/var/www/html
+      - socket:/var/run/socks
+
+  php7:
+    image: "becod/php:7.4"
+    container_name: "php74"
+    hostname: "php74"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /data/wwwroot:/var/www/html
+      - socket:/var/run/socks
+
+  php8:
+    image: "becod/php:8.1"
+    container_name: "php81"
+    hostname: "php81"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /data/wwwroot:/var/www/html
+      - socket:/var/run/socks
+
+  cron7:
+    image: "becod/cron:7.4"
+    container_name: "cron74"
+    hostname: "cron74"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - /data/wwwroot:/var/www/html
+      - /data/cron/cron.74:/etc/cron.d/cron
+
+volumes:
+  socket:

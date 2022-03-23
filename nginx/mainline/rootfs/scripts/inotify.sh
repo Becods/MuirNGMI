@@ -11,9 +11,9 @@ inotify(){
 
 init(){
     if [[ "$NGINX_INOTIFY" = "true" ]]; then
-        echo "$0: 正在启动自动热重载服务"
+        echo "["`date +"%Y-%m-%d %T"`"]$0: 正在启动自动热重载服务"
         nohup inotify.sh inotify >> /dev/null 2>&1 &
-        echo "$0: 自动热重载服务启动成功"
+        echo "["`date +"%Y-%m-%d %T"`"]$0: 自动热重载服务启动成功"
     else
         exit 0
     fi
@@ -22,7 +22,7 @@ init(){
     elif [ "$(ls -A $NGINX_INOTIFY_PATH)" ]; then
         NGINX_INOTIFY_PATHs=$NGINX_INOTIFY_PATH
     else
-        echo "$0: 在设置变量 NGINX_INOTIFY_PATH 的时候出现了错误，也许变量 NGINX_INOTIFY_PATH 所设置的目录为空或不存在"
+        echo "["`date +"%Y-%m-%d %T"`"]$0: 在设置变量 NGINX_INOTIFY_PATH 的时候出现了错误，也许变量 NGINX_INOTIFY_PATH 所设置的目录为空或不存在"
     fi
 }
 
