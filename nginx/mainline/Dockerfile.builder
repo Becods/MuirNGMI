@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV JEMALLOC_VERSION 5.2.1
 ENV PCRE_VERSION 8.45
 ENV OPENSSL_VERSION 3.0.1
-ENV NGINX_VERSION 1.21.5
+ENV NGINX_VERSION 1.21.6
 ENV INOTIFY_TOOLS_VERSON 3.21.9.6
 
 RUN echo "deb http://mirrors.aliyun.com/debian bullseye main" > /etc/apt/sources.list \
