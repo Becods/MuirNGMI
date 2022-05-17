@@ -8,7 +8,7 @@ RUN apt-get update \
 
 RUN docker-php-ext-configure gd -with-freetype=/usr/include/ -with-jpeg=/usr/include/ \
  && docker-php-ext-configure opcache --enable-opcache \
- && docker-php-ext-configure zip --with-libzip \
+ && docker-php-ext-configure zip \
  && docker-php-ext-configure gmp \
  && docker-php-ext-install -j$(nproc) gd opcache bcmath calendar exif gettext sockets dba mysqli pcntl pdo_mysql shmop sysvmsg sysvsem sysvshm iconv gmp zip \
  && pecl install imagick memcached redis swoole \
