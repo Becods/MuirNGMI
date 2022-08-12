@@ -42,7 +42,6 @@ jobs:
           context: ./php/${{ matrix.tags }}
           file: ./php/${{ matrix.tags }}/Dockerfile
           push: true
-          cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-${{ env.BuildTime }}
@@ -54,7 +53,6 @@ jobs:
           context: ./php/${{ matrix.tags }}
           file: ./php/${{ matrix.tags }}/Dockerfile.cli
           push: true
-          cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-${{ env.BuildTime }}
