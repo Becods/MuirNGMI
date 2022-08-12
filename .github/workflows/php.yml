@@ -1,0 +1,85 @@
+name: Build And Push PHP Images
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 23 * * 6'
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tags: [56, 74, 81]
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Set current date as env variable
+        run: echo "BuildTime=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - name: Make php for tag ${{ matrix.tags }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./php/${{ matrix.tags }}
+          file: ./php/${{ matrix.tags }}/Dockerfile
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-${{ env.BuildTime }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}
+
+      - name: Make php-cli for tag ${{ matrix.tags }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./php/${{ matrix.tags }}
+          file: ./php/${{ matrix.tags }}/Dockerfile.cli
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-${{ env.BuildTime }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}
+
+      - name: Make composer for tag ${{ matrix.tags }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./composer/${{ matrix.tags }}
+          file: ./composer/${{ matrix.tags }}/Dockerfile
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/composer:${{ matrix.tags }}-${{ env.BuildTime }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/composer:${{ matrix.tags }}
+
+      - name: Make cron for tag ${{ matrix.tags }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./cron/${{ matrix.tags }}
+          file: ./cron/${{ matrix.tags }}/Dockerfile
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cron:${{ matrix.tags }}-${{ env.BuildTime }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/cron:${{ matrix.tags }}

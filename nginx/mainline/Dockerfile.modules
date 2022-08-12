@@ -1,0 +1,200 @@
+FROM nginx:builder AS Building
+
+ENV GEOIP_VERSION 1.6.12
+ENV PERL_VERSION 5.37.2
+ENV LIBXML2_VERSION 2.9.14
+ENV LIBXSLT_VERSION 1.1.35
+ENV PAGESPEED_VERSION 1.14.33.1-RC1
+ENV PSOL_VERSION 1.14.36.1
+ENV LIBSODIUM_VERSION stable
+ENV LIBMAXMIDDB_VERSION 1.6.0
+ENV MODSECURITY_VERSION 3.0.7
+ENV CJSON_VERSION 1.7.15
+ENV UTHASH_VERSION 2.3.0
+ENV LIBCURL_VERSION 7.84.0
+
+ADD https://gist.githubusercontent.com/Becods/8c7be53708796103064dd540edb29fb0/raw/c2c535b6c9d998d13d15729468960a6c67808317/ngx_cache_purge-dynamic.patch /
+
+RUN apt-get install flex bison uuid-dev -y
+
+RUN wget -O "/usr/local/src/geoip.tar.gz" "https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/geoip.tar.gz" \
+ && cd "/usr/local/src/GeoIP-${GEOIP_VERSION}" \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth 1 https://github.com/openresty/luajit2.git  "/usr/local/src/luajit2" \
+ && cd "/usr/local/src/luajit2" \
+ && make -j$(nproc) \
+ && make install PREFIX=/usr/local/LuaJIT
+
+RUN wget -O "/usr/local/src/perl.tar.gz" "https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/perl.tar.gz" \
+ && cd "/usr/local/src/perl-${PERL_VERSION}" \
+ && ./Configure -des -Duseshrplib \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/libxml2.tar.gz" "https://github.com/GNOME/libxml2/archive/refs/tags/v${LIBXML2_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/libxml2.tar.gz" \
+ && cd "/usr/local/src/libxml2-${LIBXML2_VERSION}" \
+ && ./autogen.sh \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/libxslt.tar.gz" "https://github.com/GNOME/libxslt/archive/refs/tags/v${LIBXSLT_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/libxslt.tar.gz" \
+ && cd "/usr/local/src/libxslt-${LIBXSLT_VERSION}" \
+ && ./autogen.sh \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/pagespeed.tar.gz" "https://github.com/apache/incubator-pagespeed-ngx/archive/refs/tags/v${PAGESPEED_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src/" -xf "/usr/local/src/pagespeed.tar.gz" \
+ && cd /usr/local/src/incubator-pagespeed-ngx-${PAGESPEED_VERSION} \
+ && wget -O- https://dist.apache.org/repos/dist/release/incubator/pagespeed/${PSOL_VERSION}/x64/psol-${PSOL_VERSION}-apache-incubating-x64.tar.gz | tar -xz
+
+RUN git clone --depth=1 https://github.com/nicholaschiasson/ngx_upstream_jdomain.git /usr/local/src/ngx_upstream_jdomain \
+ && git clone --depth 1 https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git /usr/local/src/ngx_subs_filter \
+ && git clone --depth=1 https://github.com/openresty/set-misc-nginx-module.git /usr/local/src/set-misc-nginx-module \
+ && git clone --depth=1 https://github.com/GetPageSpeed/ngx_security_headers.git /usr/local/src/ngx_security_headers \
+ && git clone --depth=1 https://github.com/openresty/redis2-nginx-module.git /usr/local/src/redis2-nginx-module \
+ && git clone --depth=1 https://github.com/kaltura/nginx-vod-module.git /usr/local/src/nginx-vod-module \
+ && git clone --depth=1 https://github.com/openresty/lua-nginx-module.git /usr/local/src/lua_nginx_module \
+ && git clone --depth=1 https://github.com/nginx/njs.git /usr/local/src/njs \
+ && git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git /usr/local/src/ngx_headers_more \
+ && git clone --depth 1 https://github.com/leev/ngx_http_geoip2_module.git /usr/local/src/ngx_http_geoip2_module \
+ && git clone --depth=1 https://github.com/bpaquet/ngx_http_enhanced_memcached_module.git /usr/local/src/ngx_http_enhanced_memcached_module \
+ && git clone --depth=1 https://github.com/openresty/echo-nginx-module.git /usr/local/src/echo-nginx-module \
+ && git clone --depth=1 https://github.com/AirisX/nginx_cookie_flag_module.git /usr/local/src/nginx_cookie_flag_module \
+ && git clone --depth=1 https://github.com/vision5/ngx_devel_kit.git /usr/local/src/ngx_devel_kit \
+ && git clone --depth=1 https://github.com/FRiCKLE/ngx_cache_purge.git /usr/local/src/ngx_cache_purge \
+ && git clone --depth=1 https://github.com/openresty/lua-resty-core /usr/local/src/lua-resty-core \
+ && git clone --depth=1 https://github.com/openresty/lua-resty-lrucache /usr/local/src/lua-resty-lrucache \
+ && cd /usr/local/src/ngx_cache_purge \
+ && git apply /ngx_cache_purge-dynamic.patch \
+ && cd /usr/local/src/lua-resty-core \
+ && make install \
+ && cd /usr/local/src/lua-resty-lrucache \
+ && make install
+
+RUN git clone --depth=1 -b ${LIBSODIUM_VERSION} https://github.com/jedisct1/libsodium.git /usr/local/src/libsodium \
+ && cd /usr/local/src/libsodium \
+ && ./configure --with-pic \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/libmaxminddb.tar.gz" "https://github.com/maxmind/libmaxminddb/releases/download/${LIBMAXMIDDB_VERSION}/libmaxminddb-${LIBMAXMIDDB_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/libmaxminddb.tar.gz" \
+ && cd /usr/local/src/libmaxminddb-${LIBMAXMIDDB_VERSION} \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth=1 -b v${MODSECURITY_VERSION} https://github.com/SpiderLabs/ModSecurity.git /usr/local/src/ModSecurity \
+ && cd /usr/local/src/ModSecurity \
+ && chmod +x build.sh \
+ && ./build.sh \
+ && git submodule init \
+ && git submodule update \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/curl.tar.gz" "https://curl.se/download/curl-${LIBCURL_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/curl.tar.gz" \
+ && cd "/usr/local/src/curl-${LIBCURL_VERSION}" \
+ && ./configure --with-openssl \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth=1 -b current https://github.com/ADD-SP/ngx_waf.git /usr/local/src/ngx_waf-current \
+ && cd /usr/local/src/ngx_waf-current \
+ && git clone --depth=1 https://github.com/libinjection/libinjection.git inc/libinjection \
+ && git clone --depth=1 -b v${CJSON_VERSION} https://github.com/DaveGamble/cJSON.git lib/cjson \
+ && git clone --depth=1 -b v${UTHASH_VERSION} https://github.com/troydhanson/uthash.git lib/uthash
+
+RUN git clone --depth=1 -b lts https://github.com/ADD-SP/ngx_waf.git /usr/local/src/ngx_waf-lts \
+ && cd /usr/local/src/ngx_waf-lts \
+ && git clone --depth=1 https://github.com/libinjection/libinjection.git inc/libinjection \
+ && git clone --depth=1 -b v${CJSON_VERSION} https://github.com/DaveGamble/cJSON.git lib/cjson \
+ && git clone --depth=1 -b v${UTHASH_VERSION} https://github.com/troydhanson/uthash.git /usr/local/src/uthash \
+ && make
+
+RUN cp /usr/local/src/nginx-${NGINX_VERSION} /usr/local/src/nginx-${NGINX_VERSION}_waf-current -rf \
+ && cd /usr/local/src/nginx-${NGINX_VERSION}_waf-current \
+ && export LIB_MODSECURITY=/usr/local/modsecurity \
+ && export LIB_CURL=/usr/local/libcurl \
+ && ./configure \
+    --with-compat \
+    --with-ld-opt='-ljemalloc -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC' \
+    --with-cc-opt='-g -O2 -pipe -fstack-protector-strong -Wformat -Werror=format-security -fPIC' \
+    --add-dynamic-module=/usr/local/src/ngx_waf-current \
+ && make modules -j$(nproc)
+
+RUN cp /usr/local/src/nginx-${NGINX_VERSION} /usr/local/src/nginx-${NGINX_VERSION}_waf-lts -rf  \
+ && cd /usr/local/src/nginx-${NGINX_VERSION}_waf-lts \
+ && export LIB_UTHASH=/usr/local/src/uthash \
+ && ./configure \
+    --with-compat \
+    --with-ld-opt='-ljemalloc -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC' \
+    --with-cc-opt='-g -O2 -pipe -fstack-protector-strong -Wformat -Werror=format-security -fPIC' \
+    --add-dynamic-module=/usr/local/src/ngx_waf-lts \
+ && make modules -j$(nproc)
+
+RUN cd /usr/local/src/nginx-${NGINX_VERSION} \
+ && export LUAJIT_LIB=/usr/local/LuaJIT/lib \
+ && export LUAJIT_INC=/usr/local/LuaJIT/include/luajit-2.1 \
+ && ./configure \
+    --with-compat \
+    --with-ld-opt='-ljemalloc -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC' \
+    --with-cc-opt='-g -O2 -pipe -fstack-protector-strong -Wformat -Werror=format-security -fPIC' \
+    --with-mail=dynamic \
+    --with-mail_ssl_module \
+    --with-http_xslt_module=dynamic \
+    --with-http_perl_module=dynamic \
+    --with-http_geoip_module=dynamic \
+    --add-dynamic-module=/usr/local/src/ngx_devel_kit \
+    --add-dynamic-module=/usr/local/src/ngx_upstream_jdomain \
+    --add-dynamic-module=/usr/local/src/ngx_subs_filter \
+    --add-dynamic-module=/usr/local/src/set-misc-nginx-module \
+    --add-dynamic-module=/usr/local/src/ngx_security_headers \
+    --add-dynamic-module=/usr/local/src/redis2-nginx-module \
+    --add-dynamic-module=/usr/local/src/incubator-pagespeed-ngx-${PAGESPEED_VERSION} \
+    --add-dynamic-module=/usr/local/src/lua_nginx_module \
+    --add-dynamic-module=/usr/local/src/njs/nginx \
+    --add-dynamic-module=/usr/local/src/ngx_headers_more \
+    --add-dynamic-module=/usr/local/src/ngx_http_enhanced_memcached_module \
+    --add-dynamic-module=/usr/local/src/echo-nginx-module \
+    --add-dynamic-module=/usr/local/src/nginx_cookie_flag_module \
+    --add-dynamic-module=/usr/local/src/ngx_cache_purge \
+ && make modules -j$(nproc)
+
+RUN mkdir -p /rootfs/modules/lib /rootfs/usr/local/lib64/perl5/auto/nginx \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}_waf-current/objs/ngx_http_waf_module.so /rootfs/modules/ngx_http_waf_module_current.so \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}_waf-lts/objs/ngx_http_waf_module.so /rootfs/modules/ngx_http_waf_module_lts.so \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}/objs/*.so /rootfs/modules/ \
+ && cp /usr/local/src/GeoIP-${GEOIP_VERSION}/libGeoIP/.libs/libGeoIP.so.1 /rootfs/modules/lib/ \
+ && cp /usr/local/LuaJIT/lib/libluajit-5.1.so.2 /rootfs/modules/lib/ \
+ && cp /usr/local/src/libxslt-${LIBXSLT_VERSION}/libxslt/.libs/libxslt.so.1 /rootfs/modules/lib/ \
+ && cp /usr/local/src/libxslt-${LIBXSLT_VERSION}/libexslt/.libs/libexslt.so.0 /rootfs/modules/lib/ \
+ && cp /usr/local/src/libxml2-${LIBXML2_VERSION}/.libs/libxml2.so.2 /rootfs/modules/lib/ \
+ && cp /usr/lib/x86_64-linux-gnu/libicuuc.so.67 /rootfs/modules/lib/ \
+ && cp /usr/lib/x86_64-linux-gnu/libicudata.so.67 /rootfs/modules/lib/ \
+ && cp /usr/local/modsecurity/lib/libmodsecurity.so.3 /rootfs/modules/lib \
+ && cp /usr/local/src/curl-${LIBCURL_VERSION}/lib/.libs/libcurl.so.4 /rootfs/modules/lib \
+ && cp /usr/local/lib/libsodium.so.23 /rootfs/modules/lib \
+ && cp /usr/local/lib/libpcre.so.1 /rootfs/modules/lib \
+ && cp /usr/local/src/libmaxminddb-1.6.0/src/.libs/libmaxminddb.so.0 /rootfs/modules/lib \
+ && cp /usr/local/lib/libz.so.1 /rootfs/modules/lib \
+ && cp /usr/local/lib/perl5/${PERL_VERSION}/x86_64-linux/CORE/libperl.so /rootfs/lib \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}/objs/src/http/modules/perl/blib/arch/auto/nginx/nginx.so /rootfs/usr/local/lib/perl5/${PERL_VERSION}/ \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}/objs/src/http/modules/perl/blib/lib/nginx.pm /rootfs/usr/local/lib/perl5/${PERL_VERSION}/ \
+ && cp /usr/local/lib/perl5/${PERL_VERSION}/* /rootfs/usr/local/lib/perl5/${PERL_VERSION}/ -rf \
+ && cp /usr/local/lib/lua/resty/* /rootfs/usr/local/share/luajit-2.1.0-beta3/resty/ -rf
+
+FROM scratch
+COPY --from=Building /rootfs/ /

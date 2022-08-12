@@ -1,0 +1,296 @@
+FROM debian:bullseye-slim AS Building
+
+LABEL maintainer="BecodReyes <i@muir.fun>"
+
+ENV DEBIAN_FRONTEND noninteractive
+
+ENV JEMALLOC_VERSION 5.3.0
+ENV PCRE_VERSION 10.40
+ENV OPENSSL_VERSION 3.0.5
+ENV NGINX_VERSION 1.23.1
+ENV INOTIFY_TOOLS_VERSON 3.22.6.0
+ENV GEOIP_VERSION 1.6.12
+ENV PERL_VERSION 5.37.2
+ENV LIBXML2_VERSION 2.9.14
+ENV LIBXSLT_VERSION 1.1.35
+ENV PAGESPEED_VERSION 1.14.33.1-RC1
+ENV PSOL_VERSION 1.14.36.1
+ENV LIBSODIUM_VERSION stable
+ENV LIBMAXMIDDB_VERSION 1.6.0
+ENV MODSECURITY_VERSION 3.0.7
+ENV CJSON_VERSION 1.7.15
+ENV UTHASH_VERSION 2.3.0
+ENV LIBCURL_VERSION 7.84.0
+
+RUN echo "deb http://mirrors.aliyun.com/debian bullseye main" > /etc/apt/sources.list \
+ && apt update \
+ && apt-get install ca-certificates -y \
+ && echo "deb https://mirrors.aliyun.com/debian bullseye main" > /etc/apt/sources.list \
+ && apt update \
+ && apt-get install -y \
+    build-essential \
+    git \
+    cmake \
+    wget \
+    libtool \
+    pkg-config \
+    autoconf \
+    flex \
+    bison \
+    uuid-dev
+
+RUN wget -O "/usr/local/src/jemalloc.tar.bz2" "https://github.com/jemalloc/jemalloc/releases/download/${JEMALLOC_VERSION}/jemalloc-${JEMALLOC_VERSION}.tar.bz2" \
+ && tar -C "/usr/local/src" --no-same-owner -jxf "/usr/local/src/jemalloc.tar.bz2" \
+ && cd "/usr/local/src/jemalloc-${JEMALLOC_VERSION}" \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/pcre.tar.gz" "https://jaist.dl.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/pcre.tar.gz" \
+ && cd "/usr/local/src/pcre-$PCRE_VERSION" \
+ && ./configure \
+ && make -j${cpuCores}\
+ && make install
+
+RUN wget -O "/usr/local/src/openssl.tar.gz" "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/openssl.tar.gz" \
+ && cd "/usr/local/src/openssl-$OPENSSL_VERSION" \
+ && ./Configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth 1 https://github.com/cloudflare/zlib.git "/usr/local/src/zlib-cf" \
+ && cd "/usr/local/src/zlib-cf" \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth 1 https://github.com/google/ngx_brotli.git /usr/local/src/ngx_brotli \
+ && cd /usr/local/src/ngx_brotli && git submodule update --init
+
+ADD https://gist.githubusercontent.com/Becods/8c7be53708796103064dd540edb29fb0/raw/c2c535b6c9d998d13d15729468960a6c67808317/ngx_cache_purge-dynamic.patch /
+
+RUN wget -O "/usr/local/src/geoip.tar.gz" "https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/geoip.tar.gz" \
+ && cd "/usr/local/src/GeoIP-${GEOIP_VERSION}" \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth 1 https://github.com/openresty/luajit2.git  "/usr/local/src/luajit2" \
+ && cd "/usr/local/src/luajit2" \
+ && make -j$(nproc) \
+ && make install PREFIX=/usr/local/LuaJIT
+
+RUN wget -O "/usr/local/src/perl.tar.gz" "https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/perl.tar.gz" \
+ && cd "/usr/local/src/perl-${PERL_VERSION}" \
+ && ./Configure -des -Duseshrplib \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/libxml2.tar.gz" "https://github.com/GNOME/libxml2/archive/refs/tags/v${LIBXML2_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/libxml2.tar.gz" \
+ && cd "/usr/local/src/libxml2-${LIBXML2_VERSION}" \
+ && ./autogen.sh \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/libxslt.tar.gz" "https://github.com/GNOME/libxslt/archive/refs/tags/v${LIBXSLT_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/libxslt.tar.gz" \
+ && cd "/usr/local/src/libxslt-${LIBXSLT_VERSION}" \
+ && ./autogen.sh \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/pagespeed.tar.gz" "https://github.com/apache/incubator-pagespeed-ngx/archive/refs/tags/v${PAGESPEED_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src/" -xf "/usr/local/src/pagespeed.tar.gz" \
+ && cd /usr/local/src/incubator-pagespeed-ngx-${PAGESPEED_VERSION} \
+ && wget -O- https://dist.apache.org/repos/dist/release/incubator/pagespeed/${PSOL_VERSION}/x64/psol-${PSOL_VERSION}-apache-incubating-x64.tar.gz | tar -xz
+
+RUN git clone --depth=1 https://github.com/nicholaschiasson/ngx_upstream_jdomain.git /usr/local/src/ngx_upstream_jdomain \
+ && git clone --depth 1 https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git /usr/local/src/ngx_subs_filter \
+ && git clone --depth=1 https://github.com/openresty/set-misc-nginx-module.git /usr/local/src/set-misc-nginx-module \
+ && git clone --depth=1 https://github.com/GetPageSpeed/ngx_security_headers.git /usr/local/src/ngx_security_headers \
+ && git clone --depth=1 https://github.com/openresty/redis2-nginx-module.git /usr/local/src/redis2-nginx-module \
+ && git clone --depth=1 https://github.com/kaltura/nginx-vod-module.git /usr/local/src/nginx-vod-module \
+ && git clone --depth=1 https://github.com/openresty/lua-nginx-module.git /usr/local/src/lua_nginx_module \
+ && git clone --depth=1 https://github.com/nginx/njs.git /usr/local/src/njs \
+ && git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git /usr/local/src/ngx_headers_more \
+ && git clone --depth 1 https://github.com/leev/ngx_http_geoip2_module.git /usr/local/src/ngx_http_geoip2_module \
+ && git clone --depth=1 https://github.com/bpaquet/ngx_http_enhanced_memcached_module.git /usr/local/src/ngx_http_enhanced_memcached_module \
+ && git clone --depth=1 https://github.com/openresty/echo-nginx-module.git /usr/local/src/echo-nginx-module \
+ && git clone --depth=1 https://github.com/AirisX/nginx_cookie_flag_module.git /usr/local/src/nginx_cookie_flag_module \
+ && git clone --depth=1 https://github.com/vision5/ngx_devel_kit.git /usr/local/src/ngx_devel_kit \
+ && git clone --depth=1 https://github.com/FRiCKLE/ngx_cache_purge.git /usr/local/src/ngx_cache_purge \
+ && git clone --depth=1 https://github.com/openresty/lua-resty-core /usr/local/src/lua-resty-core \
+ && git clone --depth=1 https://github.com/openresty/lua-resty-lrucache /usr/local/src/lua-resty-lrucache \
+ && cd /usr/local/src/ngx_cache_purge \
+ && git apply /ngx_cache_purge-dynamic.patch \
+ && cd /usr/local/src/lua-resty-core \
+ && make install \
+ && cd /usr/local/src/lua-resty-lrucache \
+ && make install
+
+RUN git clone --depth=1 -b ${LIBSODIUM_VERSION} https://github.com/jedisct1/libsodium.git /usr/local/src/libsodium \
+ && cd /usr/local/src/libsodium \
+ && ./configure --with-pic \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/libmaxminddb.tar.gz" "https://github.com/maxmind/libmaxminddb/releases/download/${LIBMAXMIDDB_VERSION}/libmaxminddb-${LIBMAXMIDDB_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/libmaxminddb.tar.gz" \
+ && cd /usr/local/src/libmaxminddb-${LIBMAXMIDDB_VERSION} \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth=1 -b v${MODSECURITY_VERSION} https://github.com/SpiderLabs/ModSecurity.git /usr/local/src/ModSecurity \
+ && cd /usr/local/src/ModSecurity \
+ && chmod +x build.sh \
+ && ./build.sh \
+ && git submodule init \
+ && git submodule update \
+ && ./configure \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/curl.tar.gz" "https://curl.se/download/curl-${LIBCURL_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src" -xf "/usr/local/src/curl.tar.gz" \
+ && cd "/usr/local/src/curl-${LIBCURL_VERSION}" \
+ && ./configure --with-openssl \
+ && make -j$(nproc) \
+ && make install
+
+RUN git clone --depth=1 -b current https://github.com/ADD-SP/ngx_waf.git /usr/local/src/ngx_waf \
+ && cd /usr/local/src/ngx_waf \
+ && git clone --depth=1 https://github.com/libinjection/libinjection.git inc/libinjection \
+ && git clone --depth=1 -b v${CJSON_VERSION} https://github.com/DaveGamble/cJSON.git lib/cjson \
+ && git clone --depth=1 -b v${UTHASH_VERSION} https://github.com/troydhanson/uthash.git lib/uthash
+
+RUN git clone --depth=1 -b ${INOTIFY_TOOLS_VERSON} https://github.com/inotify-tools/inotify-tools /usr/local/src/inotify-tools \
+ && cd /usr/local/src/inotify-tools \
+ && ./autogen.sh \
+ && ./configure --prefix=/inotify-tools \
+ && make -j$(nproc) \
+ && make install
+
+RUN wget -O "/usr/local/src/nginx.tar.gz" "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" \
+ && tar -C "/usr/local/src/" -xf "/usr/local/src/nginx.tar.gz" \
+ && cd "/usr/local/src/nginx-${NGINX_VERSION}" \
+ && export LUAJIT_LIB=/usr/local/LuaJIT/lib \
+ && export LUAJIT_INC=/usr/local/LuaJIT/include/luajit-2.1 \
+ && export LIB_MODSECURITY=/usr/local/modsecurity \
+ && export LIB_CURL=/usr/local/libcurl \
+ && ldconfig \
+ && ./configure \
+    --with-ld-opt='-ljemalloc -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC' \
+    --with-cc-opt='-g -O2 -pipe -fstack-protector-strong -Wformat -Werror=format-security -fPIC' \
+    --prefix=/etc/nginx \
+    --sbin-path=/usr/bin/nginx \
+    --conf-path=/etc/nginx/nginx.conf \
+    --http-log-path=/dev/stdout \
+    --error-log-path=/dev/stderr \
+    --pid-path=/etc/nginx/nginx.pid \
+    --lock-path=/etc/nginx/nginx.lock \
+    --http-client-body-temp-path=/tmp/nginx/client_temp \
+    --http-proxy-temp-path=/tmp/nginx/proxy_temp \
+    --http-fastcgi-temp-path=/tmp/nginx/fastcgi_temp \
+    --http-uwsgi-temp-path=/tmp/nginx/uwsgi_temp \
+    --http-scgi-temp-path=/tmp/nginx/scgi_temp \
+    --with-pcre=/usr/local/src/pcre-$PCRE_VERSION \
+    --with-pcre-jit \
+    --with-http_ssl_module \
+    --with-http_realip_module \
+    --with-http_addition_module \
+    --with-http_sub_module \
+    --with-http_dav_module \
+    --with-http_flv_module \
+    --with-http_mp4_module \
+    --with-http_gunzip_module \
+    --with-http_gzip_static_module \
+    --with-http_random_index_module \
+    --with-http_secure_link_module \
+    --with-http_stub_status_module \
+    --with-http_auth_request_module \
+    --with-threads \
+    --with-stream \
+    --with-stream_ssl_module \
+    --with-stream_ssl_preread_module \
+    --with-stream_realip_module \
+    --with-http_slice_module \
+    --with-ipv6 \
+    --with-file-aio \
+    --with-openssl=/usr/local/src/openssl-$OPENSSL_VERSION \
+    --with-openssl-opt=zlib \
+    --with-zlib=/usr/local/src/zlib-cf \
+    --with-http_v2_module \
+    --with-compat \
+    --with-mail \
+    --with-mail_ssl_module \
+    --with-http_xslt_module \
+    --with-http_perl_module \
+    --with-http_geoip_module \
+    --add-module=/usr/local/src/ngx_brotli \
+    --add-module=/usr/local/src/ngx_devel_kit \
+    --add-module=/usr/local/src/ngx_upstream_jdomain \
+    --add-module=/usr/local/src/ngx_subs_filter \
+    --add-module=/usr/local/src/set-misc-nginx-module \
+    --add-module=/usr/local/src/ngx_security_headers \
+    --add-module=/usr/local/src/redis2-nginx-module \
+    --add-module=/usr/local/src/incubator-pagespeed-ngx-${PAGESPEED_VERSION} \
+    --add-module=/usr/local/src/lua_nginx_module \
+    --add-module=/usr/local/src/njs/nginx \
+    --add-module=/usr/local/src/ngx_headers_more \
+    --add-module=/usr/local/src/ngx_http_enhanced_memcached_module \
+    --add-module=/usr/local/src/echo-nginx-module \
+    --add-module=/usr/local/src/nginx_cookie_flag_module \
+    --add-module=/usr/local/src/ngx_cache_purge \
+    --add-module=/usr/local/src/ngx_waf \
+ && make -j$(nproc)
+
+RUN mkdir -p /rootfs/usr/local/lib/perl5/${PERL_VERSION}/ \
+       /rootfs/etc/ssl/certs \
+       /rootfs/etc/nginx \
+       /rootfs/etc \
+       /rootfs/usr/bin \
+       /rootfs/tmp/nginx \
+       /rootfs/lib \
+       /rootfs/entrypoint.d \
+       /rootfs/usr/local/share/luajit-2.1.0-beta3/resty/ \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}/objs/nginx /rootfs/usr/bin/ \
+ && cp /inotify-tools/bin/* /rootfs/usr/bin/ -rf \
+ && cp /inotify-tools/lib/* /rootfs/lib/ -rf \
+ && cp /etc/ssl/certs/ca-certificates.crt /rootfs/etc/ssl/certs/ \
+ && cp /usr/local/lib/libjemalloc.so.2 /rootfs/lib/ \
+ && cp /usr/local/src/GeoIP-${GEOIP_VERSION}/libGeoIP/.libs/libGeoIP.so.1 /rootfs/lib/ \
+ && cp /usr/local/LuaJIT/lib/libluajit-5.1.so.2 /rootfs/lib/ \
+ && cp /usr/local/src/libxslt-${LIBXSLT_VERSION}/libxslt/.libs/libxslt.so.1 /rootfs/lib/ \
+ && cp /usr/local/src/libxslt-${LIBXSLT_VERSION}/libexslt/.libs/libexslt.so.0 /rootfs/lib/ \
+ && cp /usr/local/src/libxml2-${LIBXML2_VERSION}/.libs/libxml2.so.2 /rootfs/lib/ \
+ && cp /usr/lib/x86_64-linux-gnu/libicuuc.so.67 /rootfs/lib/ \
+ && cp /usr/lib/x86_64-linux-gnu/libicudata.so.67 /rootfs/lib/ \
+ && cp /usr/local/modsecurity/lib/libmodsecurity.so.3 /rootfs/lib \
+ && cp /usr/local/src/curl-${LIBCURL_VERSION}/lib/.libs/libcurl.so.4 /rootfs/lib \
+ && cp /usr/local/lib/libsodium.so.23 /rootfs/lib \
+ && cp /usr/local/lib/libpcre.so.1 /rootfs/lib \
+ && cp /usr/local/src/libmaxminddb-1.6.0/src/.libs/libmaxminddb.so.0 /rootfs/lib \
+ && cp /usr/local/lib/libz.so.1 /rootfs/lib \
+ && cp /usr/local/lib64/libssl.so.3 /rootfs/lib \
+ && cp /usr/local/lib64/libcrypto.so.3 /rootfs/lib \
+ && cp /usr/local/lib/perl5/${PERL_VERSION}/x86_64-linux/CORE/libperl.so /rootfs/lib \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}/objs/src/http/modules/perl/blib/arch/auto/nginx/nginx.so /rootfs/usr/local/lib/perl5/${PERL_VERSION}/ \
+ && cp /usr/local/src/nginx-${NGINX_VERSION}/objs/src/http/modules/perl/blib/lib/nginx.pm /rootfs/usr/local/lib/perl5/${PERL_VERSION}/ \
+ && cp /usr/local/lib/perl5/${PERL_VERSION}/* /rootfs/usr/local/lib/perl5/${PERL_VERSION}/ -rf \
+ && cp /usr/local/lib/lua/resty/* /rootfs/usr/local/share/luajit-2.1.0-beta3/resty/ -rf
+
+FROM debian:bullseye-slim
+COPY --from=Building /rootfs /
+COPY rootfs /
+RUN useradd -l -u 25872 -s /sbin/nologin -p www www
+ENTRYPOINT ["/entrypoint.sh"]
+STOPSIGNAL SIGQUIT
+CMD ["nginx", "-g", "daemon off;"]
