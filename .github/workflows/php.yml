@@ -55,8 +55,8 @@ jobs:
           push: true
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-${{ env.BuildTime }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-cli-${{ env.BuildTime }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-cli
 
       - name: Make composer for tag ${{ matrix.tags }}
         uses: docker/build-push-action@v2
