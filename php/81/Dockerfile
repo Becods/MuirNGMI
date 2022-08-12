@@ -1,18 +1,28 @@
 FROM php:8.1-fpm
 
-RUN apt-get update \
+RUN echo "deb https://mirrors.cloud.tencent.com/debian/ bullseye main contrib non-free" > /etc/apt/sources.list \
+ && apt-get update \
  && export CFLAGS="$PHP_CFLAGS" CPPFLAGS="$PHP_CPPFLAGS" LDFLAGS="$PHP_LDFLAGS" \
- && apt-get install -y --no-install-recommends libfreetype6-dev libjpeg62-turbo-dev libpng-dev libmagickwand-dev libmemcached-dev zlib1g-dev libgmp-dev libzip-dev zip unzip p7zip-full git \
+ && apt-get install -y --no-install-recommends \
+    libfreetype6-dev libwebp-dev libjpeg62-turbo-dev libpng-dev libxpm-dev \
+    libmagickwand-dev libmemcached-dev zlib1g-dev libgmp-dev \
+    libzip-dev zip unzip p7zip-full git \
  && rm -r /var/lib/apt/lists/* \
  && rm -r /var/cache/*
 
-RUN docker-php-ext-configure gd -with-freetype=/usr/include/ -with-jpeg=/usr/include/ \
+RUN docker-php-ext-configure gd --enable-gd \
+    --with-webp \
+    --with-jpeg \
+    --with-xpm \
+    --with-freetype \
  && docker-php-ext-configure opcache --enable-opcache \
  && docker-php-ext-configure zip \
  && docker-php-ext-configure gmp \
  && docker-php-ext-install -j$(nproc) gd opcache bcmath calendar exif gettext sockets dba mysqli pcntl pdo_mysql shmop sysvmsg sysvsem sysvshm iconv gmp zip \
  && pecl install imagick memcached redis swoole \
- && docker-php-ext-enable imagick memcached redis swoole opcache
+ && docker-php-ext-enable imagick memcached redis opcache \
+ && docker-php-source delete \
+ && rm -r /var/cache/*
 
 RUN useradd -l -u 25872 -s /sbin/nologin -p www www \
  && mkdir /home/www/ \
