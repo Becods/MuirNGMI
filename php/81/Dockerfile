@@ -1,7 +1,6 @@
 FROM php:8.1-fpm
 
-RUN echo "deb https://mirrors.cloud.tencent.com/debian/ bullseye main contrib non-free" > /etc/apt/sources.list \
- && apt-get update \
+RUN apt-get update \
  && export CFLAGS="$PHP_CFLAGS" CPPFLAGS="$PHP_CPPFLAGS" LDFLAGS="$PHP_LDFLAGS" \
  && apt-get install -y --no-install-recommends \
     libfreetype6-dev libwebp-dev libjpeg62-turbo-dev libpng-dev libxpm-dev \
