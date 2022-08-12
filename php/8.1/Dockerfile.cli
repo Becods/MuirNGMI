@@ -4,12 +4,24 @@ RUN apt-get update \
  && export CFLAGS="$PHP_CFLAGS" CPPFLAGS="$PHP_CPPFLAGS" LDFLAGS="$PHP_LDFLAGS" \
  && apt-get install -y --no-install-recommends \
     libfreetype6-dev libwebp-dev libjpeg62-turbo-dev libpng-dev libxpm-dev \
-    libmagickwand-dev libmemcached-dev zlib1g-dev libgmp-dev \
+    libmagickwand-dev libmemcached-dev zlib1g-dev libgmp-dev libcurl4-openssl-dev \
     libzip-dev zip unzip p7zip-full git \
  && rm -r /var/lib/apt/lists/* \
  && rm -r /var/cache/*
 
-RUN docker-php-ext-configure gd --enable-gd \
+RUN mkdir -p /usr/src/php/ext/ \
+ && git clone --depth 1 https://github.com/danog/PrimeModule-ext /usr/src/PrimeModule-ext \
+ && cd /usr/src/PrimeModule-ext && make -j$(nproc) \
+ && make install \
+ && cd /usr/src/php/ext/ \
+ && pecl bundle openswoole ev \
+ && docker-php-ext-configure openswoole \
+    --enable-openssl \
+    --enable-http2 \
+    --enable-swoole-json \
+    --enable-swoole-curl \
+ && cd /var/www/html \
+ && docker-php-ext-configure gd --enable-gd \
     --with-webp \
     --with-jpeg \
     --with-xpm \
@@ -17,10 +29,12 @@ RUN docker-php-ext-configure gd --enable-gd \
  && docker-php-ext-configure opcache --enable-opcache \
  && docker-php-ext-configure zip \
  && docker-php-ext-configure gmp \
- && docker-php-ext-install -j$(nproc) gd opcache bcmath calendar exif gettext sockets dba mysqli pcntl pdo_mysql shmop sysvmsg sysvsem sysvshm iconv gmp zip \
- && pecl install imagick memcached redis swoole \
+ && docker-php-ext-install -j$(nproc) gd opcache bcmath calendar exif gettext sockets \
+    dba mysqli pcntl pdo_mysql shmop sysvmsg sysvsem sysvshm iconv gmp zip ffi pdo \
+ && pecl install imagick memcached redis \
  && docker-php-ext-enable imagick memcached redis opcache \
- && docker-php-source delete
+ && docker-php-source delete \
+ && rm -rf /usr/src/*
 
 RUN useradd -l -u 25872 -s /sbin/nologin -p www www \
  && mkdir /home/www/ \
