@@ -21,8 +21,7 @@ RUN docker-php-ext-configure gd --enable-gd \
  && docker-php-ext-install -j$(nproc) gd opcache bcmath calendar exif gettext sockets dba mysqli pcntl pdo_mysql shmop sysvmsg sysvsem sysvshm iconv gmp zip \
  && pecl install imagick memcached redis swoole \
  && docker-php-ext-enable imagick memcached redis opcache \
- && docker-php-source delete \
- && rm -r /var/cache/*
+ && docker-php-source delete
 
 RUN useradd -l -u 25872 -s /sbin/nologin -p www www \
  && mkdir /home/www/ \
