@@ -3,13 +3,15 @@ name: Build And Push PHP Images
 on:
   push:
   workflow_dispatch:
+  schedule:
+    - cron:  '0 23 * * 6'
 
 jobs:
   php:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tags: [56, 74, 80, 81]
+        tags: [56, 74, 81]
     steps:
       - name: Checkout 
         uses: actions/checkout@v2
@@ -24,7 +26,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Cache Docker layers
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
@@ -40,7 +42,20 @@ jobs:
           context: ./php/${{ matrix.tags }}
           file: ./php/${{ matrix.tags }}/Dockerfile
           push: true
-          cache-to: type=local,src=/tmp/.buildx-cache,mode=max
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-${{ env.BuildTime }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}
+
+      - name: Make php-cli for tag ${{ matrix.tags }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./php/${{ matrix.tags }}
+          file: ./php/${{ matrix.tags }}/Dockerfile.cli
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}-${{ env.BuildTime }}
             ${{ secrets.DOCKERHUB_USERNAME }}/php:${{ matrix.tags }}
@@ -52,6 +67,7 @@ jobs:
           file: ./composer/${{ matrix.tags }}/Dockerfile
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/composer:${{ matrix.tags }}-${{ env.BuildTime }}
             ${{ secrets.DOCKERHUB_USERNAME }}/composer:${{ matrix.tags }}
@@ -63,6 +79,7 @@ jobs:
           file: ./cron/${{ matrix.tags }}/Dockerfile
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cron:${{ matrix.tags }}-${{ env.BuildTime }}
             ${{ secrets.DOCKERHUB_USERNAME }}/cron:${{ matrix.tags }}
