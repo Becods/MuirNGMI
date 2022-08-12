@@ -1,4 +1,4 @@
-FROM becod/composer:74
+FROM becod/composer:7.4
 
 USER root
 

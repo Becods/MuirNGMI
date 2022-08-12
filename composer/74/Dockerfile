@@ -1,4 +1,4 @@
-FROM becod/php:74-cli
+FROM becod/php:7.4-cli
 
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
