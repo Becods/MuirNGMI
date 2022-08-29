@@ -1,9 +1,14 @@
 #!/bin/bash
 
 inotify(){
-	inotifywait -rq --timefmt '[%Y/%m/%d %H:%M:%S]' --format '%T %w%f' --event modify "$NGINX_INOTIFY_PATHs"
-	if [[ "$?" -eq "MODIFY" ]] ; then
-		/bin/nginx -s reload
+	inotifywait -rq --timefmt '[%Y/%m/%d %H:%M:%S]' --format '%T %w%f' -e create,delete,modify,attrib "$NGINX_INOTIFY_PATHs"
+	/usr/bin/nginx -t > /nginx-test.log 2>&1
+	if [[ "$?" -eq "0" ]] ; then
+		/usr/bin/nginx -s reload
+		echo "["`date +"%Y-%m-%d %T"`"] $0: 配置已更改，Nginx重载成功" > /proc/1/fd/1
+	else
+		echo "["`date +"%Y-%m-%d %T"`"] $0: 配置已更改，Nginx重载失败，报错如下：" > /proc/1/fd/1
+		cat /nginx-test.log > /proc/1/fd/1
 	fi
 	sleep 5s
 	inotify
@@ -12,7 +17,7 @@ inotify(){
 init(){
     if [[ "$NGINX_INOTIFY" = "true" ]]; then
         echo "["`date +"%Y-%m-%d %T"`"]$0: 正在启动自动热重载服务"
-        nohup inotify.sh inotify >> /dev/null 2>&1 &
+        nohup /scripts/inotify.sh inotify >> /dev/null 2>&1 &
         echo "["`date +"%Y-%m-%d %T"`"]$0: 自动热重载服务启动成功"
     else
         exit 0
